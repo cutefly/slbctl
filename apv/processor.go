@@ -2,15 +2,67 @@ package apv
 
 import (
   "fmt"
+  "encoding/base64"
+  "net/http"
   "github.com/spf13/viper"
 )
 
-func Configure(username string, password string) error {
+type config struct {
+  username string
+  password string
+  ip string
+  port string
+}
+
+type member struct {
+  real_service string
+  weight int
+  priority int
+  active_status bool
+  active_reason string
+}
+
+type group struct {
+  instance_id string
+  members []member
+}
+
+type group_detail struct {
+  instance_id string
+  group_name string
+  method string
+  activation int
+  failvoer int
+  priority_mode bool
+  enable bool
+  protocol string
+  proxy_protocol bool
+  members []member
+  health_relation string
+  hc_tcp_tempalte []string
+  hc_http_tempalte []string
+  group_policy_scope_name []string
+}
+
+func ConfigureLogin(username string, password string) error {
+  viper.ReadInConfig()
   fmt.Println("Configuring APV with username: " + username + " and password: " + password)
   viper.Set("username", username)
   viper.Set("password", password)
   viper.WriteConfigAs("./.config")
+  //viper.WriteConfig()
   fmt.Println("Configuring VIPER with username: " + viper.GetString("username") + " and password: " + viper.GetString("password"))
+  return nil
+}
+
+func ConfigureServer(ip string, port string) error {
+  viper.ReadInConfig()
+  fmt.Println("Configuring APV with ip: " + ip + " and port: " + port)
+  viper.Set("ip", ip)
+  viper.Set("port", port)
+  viper.WriteConfigAs("./.config")
+  //viper.WriteConfig()
+  fmt.Println("Configuring VIPER with ip: " + viper.GetString("ip") + " and port: " + viper.GetString("port"))
   return nil
 }
 
@@ -51,6 +103,33 @@ func ShowGroupMember(groupname string) error {
     panic(fmt.Errorf("fatal error config file: %w", err))
   }
   fmt.Println("Configuring VIPER with username: " + viper.GetString("username") + " and password: " + viper.GetString("password"))
+  ip := viper.GetString("ip")
+  port := viper.GetString("port")
+  username := viper.GetString("username")
+  password := viper.GetString("password")
+
+  url := fmt.Sprintf("https://%s:%s/rest/apv/loadbalancing/slb/group/Group/%s/members", ip, port, groupname)
+  fmt.Println("Request URL:", url)
+  req, err := http.NewRequest("GET", url, nil)
+  if err != nil {
+    panic(fmt.Errorf("fatal error create http request: %w", err))
+  }
+
+  req.Header.Add("Authorization", "Basic " + BasicAuth(username, password))
+  client := &http.Client{}
+
+  res, err := client.Do(req)
+
+  if err != nil {
+    panic(fmt.Errorf("fatal error http request: %w", err))
+  }
+
+  defer res.Body.Close()
+
   return nil
 }
 
+func BasicAuth(username string, password string) string {
+  auth := username + ":" + password
+  return base64.StdEncoding.EncodeToString([]byte(auth))
+}
