@@ -18,37 +18,37 @@ type Config struct {
 }
 
 type Member struct {
-	real_service  string
-	weight        int
-	priority      int
-	active_status bool
-	active_reason string
+	RealService  string `json:"real_service"`
+	Weight       int    `json:"weight"`
+	Priority     int    `json:"priority"`
+	ActiveStatus bool   `json:"active_status"`
+	ActiveReason string `json:"active_reason"`
 }
 
 type Group struct {
-	instance_id string
-	members     []Member
+	InstanceId string   `json:"instance_id"`
+	Members    []Member `json:"members"`
 }
 
-type parseJSON struct {
-	group Group `json:"Group"`
+type GroupMember struct {
+	Group Group `json:"Group"`
 }
 
 type GroupDetail struct {
-	instance_id             string
-	group_name              string
-	method                  string
-	activation              int
-	failvoer                int
-	priority_mode           bool
-	enable                  bool
-	protocol                string
-	proxy_protocol          bool
-	members                 []Member
-	health_relation         string
-	hc_tcp_tempalte         []string
-	hc_http_tempalte        []string
-	group_policy_scope_name []string
+	InstanceId           string   `json:"instance_id"`
+	GroupName            string   `json:"group_name"`
+	Method               string   `json:"method"`
+	Activation           int      `json:"activation"`
+	Failvoer             int      `json:"failover"`
+	PriorityMode         bool     `json:"priority_mode"`
+	Enable               bool     `json:"enable"`
+	Protocol             string   `json:"protocol"`
+	ProxyProtocol        bool     `json:"proxy_protocol"`
+	Members              []Member `json:"members"`
+	HealthRelation       string   `json:"health_relation"`
+	HcTcpTempalte        []string `json:"hc_tcp_tempalte"`
+	HcHttpTempalte       []string `json:"hc_http_tempalte"`
+	GroupPolicyScopeName []string `json:"group_policy_scope_name"`
 }
 
 func ConfigureLogin(username string, password string) error {
@@ -137,7 +137,7 @@ func ShowGroupMember(groupname string) error {
 	}
 	fmt.Println("body:", string(body)) // body {"code":200,"message":"hi"}
 
-	thisRes := parseJSON{}
+	thisRes := GroupMember{}
 	parseErr := json.Unmarshal(body, &thisRes) // json parse
 
 	if parseErr != nil {
@@ -154,23 +154,64 @@ func BasicAuth(username string, password string) string {
 	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
+type MemberType struct {
+	Name   string
+	Age    int
+	Active bool
+}
+
+type GroupType struct {
+	Group MemberType
+}
+
 func Test() {
 	fmt.Println("do test")
-	body := []byte(`{
-  "Group": {
-    "instance_id": "kubernetes-dev-32443-gr",
-    "members": []
-  }
-}`)
-	fmt.Println("body:\n" + string(body)) // body {"code":200,"message":"hi"}
+	member1 := Member{"kubernetes-dev-32443-1", 100, 1, true, "active"}
+	member2 := Member{"kubernetes-dev-32443-2", 100, 1, true, "active"}
+	member3 := Member{"kubernetes-dev-32443-3", 100, 1, true, "active"}
+	group := Group{"kubernetes-dev-32443-gr", []Member{member1, member2, member3}}
+	resultJSON := GroupMember{group}
+	//JSON 인코딩
+	jsonBytes, err := json.Marshal(resultJSON)
+	if err != nil {
+		panic(err)
+	}
+	//JSON 바이트를 문자열로 변경
+	jsonString := string(jsonBytes)
+	fmt.Println("group:", jsonString)
 
-	thisRes := parseJSON{}
-	parseErr := json.Unmarshal(body, &thisRes) // json parse
+	// body := []byte(`{"group": {"instance_id": "kubernetes-dev-32443-gr"}}`)
+	// fmt.Println("body:\n" + string(body)) // body {"code":200,"message":"hi"}
+
+	groupMember := GroupMember{}
+	parseErr := json.Unmarshal(jsonBytes, &groupMember) // json parse
 
 	if parseErr != nil {
 		panic(parseErr)
 	}
 
-	fmt.Println("group:", thisRes) // body {"code":200,"message":"hi"}
+	fmt.Println("members:", len(groupMember.Group.Members)) // body {"code":200,"message":"hi"}
+	/*
+		mem := MemberType{"Dusdj", 23, true}
+		group := GroupType{mem}
 
+		//JSON 인코딩
+		jsonBytes, err := json.Marshal(group)
+		if err != nil {
+			panic(err)
+		}
+
+		//JSON 바이트를 문자열로 변경
+		jsonString := string(jsonBytes)
+		fmt.Println(jsonString)
+
+		//JSON 디코딩
+		newGroup := GroupType{}
+		err = json.Unmarshal(jsonBytes, &newGroup)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Println(newGroup.Group.Name)
+	*/
 }
