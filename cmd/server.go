@@ -1,16 +1,15 @@
 /*
 Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
 import (
 	"fmt"
-  "strings"
+	"strings"
 
 	"github.com/spf13/cobra"
 
-  "slbctl/apv"
+	"slbctl/apv"
 )
 
 // serverCmd represents the server command
@@ -26,17 +25,15 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("server called")
 
-    ip, _ := cmd.Flags().GetString("ip")
-    port, _ := cmd.Flags().GetString("port")
+		url, _ := cmd.Flags().GetString("url")
 
-    if len(args) > 0 {
-      fmt.Println("You're arguments were: " + strings.Join(args, ","))
-    } else {
-      // fmt.Println("Please provide the required arguments")
-      fmt.Println("Value of ip flag: " + ip)
-      fmt.Println("Value of port flag: " + port)
-      apv.ConfigureServer(ip, port)
-    }
+		if len(args) > 0 {
+			fmt.Println("You're arguments were: " + strings.Join(args, ","))
+		} else {
+			// fmt.Println("Please provide the required arguments")
+			fmt.Println("Value of url flag: " + url)
+			apv.ConfigureServer(url)
+		}
 	},
 }
 
@@ -52,10 +49,8 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// serverCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-	serverCmd.Flags().StringP("ip", "i", "", "ip for server")
-	serverCmd.Flags().StringP("port", "p", "", "port for server")
+	serverCmd.Flags().StringP("url", "u", "", "url for server")
 
 	// Making Flags Required
-	serverCmd.MarkPersistentFlagRequired("ip")
-	serverCmd.MarkPersistentFlagRequired("port")
+	serverCmd.MarkPersistentFlagRequired("url")
 }
