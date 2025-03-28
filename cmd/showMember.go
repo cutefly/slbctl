@@ -14,7 +14,7 @@ import (
 
 // showMemberCmd represents the showMember command
 var showMemberCmd = &cobra.Command{
-	Use:   "member",
+	Use:   "member <groupname>",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:

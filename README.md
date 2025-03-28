@@ -1,21 +1,42 @@
 # SLB cli
 
-## install
+## Install
+
+## install go
 
 ```
-go mod init slbctl
-cobra-cli init
+```
 
+## cobra library
+
+```sh
+go mod init slbctl
+
+cobra-cli init
 cobra-cli add add
 cobra-cli add config
 cobra-cli add login
+...
 ```
 
-```
-go run main.go config login --username=user --password=pass
-go run main.go add memmber group-name member-name
-go run main.go remove memmber group-name member-name
+## Run
+
+## go run
+
+```sh
+go run . config login --username=username --password=password
+go run . config server --url https://132b1854-53f1-489b-9152-ac9dad68bdcb.mock.pstmn.io
+go run . show member kubernetes-dev-32443-gr
+go run . add member kubernetes-dev-32443-gr kubernetes-dev-32443-3
+go run . remove member kubernetes-dev-32443-gr kubernetes-dev-32443-3 --force=true
 ```
 
-```
+## Build
+
+## go build
+
+```sh
+go mod tidy
+go build
+./slbctl config login --username=username --password=password
 ```

@@ -13,9 +13,9 @@ import (
 )
 
 type Config struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
-	URL      string `json:"url"`
+	Username string `yaml:"username"`
+	Password string `yaml:"password"`
+	URL      string `yaml:"url"`
 }
 
 type Member struct {
@@ -24,19 +24,6 @@ type Member struct {
 	Priority     int    `json:"priority"`
 	ActiveStatus bool   `json:"active_status"`
 	ActiveReason string `json:"active_reason"`
-}
-
-type SimpleGroup struct {
-	InstanceId string   `json:"instance_id"`
-	Members    []Member `json:"members"`
-}
-
-type GroupResult struct {
-	Group Group `json:"Group"`
-}
-
-type GroupRequest struct {
-	RealService string `json:"real_service"`
 }
 
 type Group struct {
@@ -58,47 +45,56 @@ type Group struct {
 	GroupPolicyScopeName []string `json:"group_policy_scope_name"`
 }
 
+type SimpleGroup struct {
+	InstanceId string   `json:"instance_id"`
+	Members    []Member `json:"members"`
+}
+
+type GroupRequest struct {
+	RealService string `json:"real_service"`
+}
+
+type GroupResponse struct {
+	Group Group `json:"Group"`
+}
+
+type CliRequest struct {
+	Cmd string `json:"cmd"`
+}
+
+type CliResponse struct {
+	Contents string `json:"contents"`
+}
+
 var config Config
 
 func ConfigureLogin(username string, password string) error {
-	viper.ReadInConfig()
+	_ = viper.Unmarshal(&config)
 	// fmt.Println("Configuring APV with username: " + username + " and password: " + password)
 	viper.Set("username", username)
 	viper.Set("password", password)
-	viper.WriteConfigAs("./.config")
-	//viper.WriteConfig()
+	config = Config{Username: username, Password: password}
+	viper.WriteConfig()
 	//fmt.Println("Configuring VIPER with username: " + viper.GetString("username") + " and password: " + viper.GetString("password"))
 	fmt.Println("Configuring viper with username and password")
-
-	config.Username = username
-	config.Password = password
-
 	return nil
 }
 
 func ConfigureServer(url string) error {
-	viper.ReadInConfig()
-	// fmt.Println("Configuring APV with url: " + url)
+	_ = viper.Unmarshal(&config)
+	// fmt.Println("Configuring APV with username: " + username + " and password: " + password)
 	viper.Set("url", url)
-	viper.WriteConfigAs("./.config")
-	//viper.WriteConfig()
+	config = Config{URL: url}
+	viper.WriteConfig()
 	// fmt.Println("Configuring VIPER with url: " + viper.GetString("url"))
 	fmt.Println("Configuring viper with URL")
-
-	config.URL = url
-
 	return nil
 }
 
 func AddGroupMember(groupname string, membername string) error {
 	fmt.Println("Adding member: " + membername + " to group: " + groupname)
 
-	err := viper.ReadInConfig()
-	if err != nil { // Handle errors reading the config file
-		panic(fmt.Errorf("fatal error config file: %w", err))
-	}
-	// fmt.Println("Configuring VIPER with username: " + viper.GetString("username") + " and password: " + viper.GetString("password"))
-
+	_ = viper.Unmarshal(&config)
 	// show slb group member를 통해 그룹에 소속되어 있는지 확인
 	isMember, err := isGroupMember(groupname, membername)
 	// 소속이 되어 있는 경우 skip, no error
@@ -110,13 +106,9 @@ func AddGroupMember(groupname string, membername string) error {
 		return nil
 	}
 
-	url := viper.GetString("url")
-	username := viper.GetString("username")
-	password := viper.GetString("password")
-
 	// 소속이 되어 있지 않은 경우 그룹에 추가
-	reqUrl := fmt.Sprintf("%s/rest/apv/loadbalancing/slb/group/Group/%s/members", url, groupname)
-	// fmt.Println("Request URL:", reqUrl)
+	reqUrl := fmt.Sprintf("%s/rest/apv/loadbalancing/slb/group/Group/%s/members", config.URL, groupname)
+	fmt.Println("Request URL:", reqUrl)
 	groupRequest := GroupRequest{membername}
 	//JSON 인코딩
 	jsonBytes, err := json.Marshal(groupRequest)
@@ -129,7 +121,7 @@ func AddGroupMember(groupname string, membername string) error {
 		panic(fmt.Errorf("fatal error create http request: %w", err))
 	}
 
-	req.Header.Add("Authorization", "Basic "+BasicAuth(username, password))
+	req.Header.Add("Authorization", "Basic "+basicAuth(config.Username, config.Password))
 	client := &http.Client{}
 
 	res, err := client.Do(req)
@@ -147,7 +139,7 @@ func AddGroupMember(groupname string, membername string) error {
 	}
 	// fmt.Println("body:", string(body))
 
-	thisRes := GroupResult{}
+	thisRes := GroupResponse{}
 	parseErr := json.Unmarshal(body, &thisRes) // json parse
 
 	if parseErr != nil {
@@ -164,12 +156,8 @@ func AddGroupMember(groupname string, membername string) error {
 
 func RemoveGroupMember(groupname string, membername string, force bool) error {
 	fmt.Println("Removing member: "+membername+" from group: "+groupname+" with force:", force)
-	err := viper.ReadInConfig()
-	if err != nil { // Handle errors reading the config file
-		panic(fmt.Errorf("fatal error config file: %w", err))
-	}
-	fmt.Println("Configuring VIPER with username: " + viper.GetString("username") + " and password: " + viper.GetString("password"))
 
+	_ = viper.Unmarshal(&config)
 	// show slb group member를 통해 그룹에 소속되어 있는지 확인
 	isMember, err := isGroupMember(groupname, membername)
 	// 소속이 되어 있지 않은 경우 skip, no error
@@ -195,18 +183,24 @@ func RemoveGroupMember(groupname string, membername string, force bool) error {
 	}
 
 	// 소속이 되어 있는 경우 force=true 인 경우 요청한 멤버를 그룹에서 제거
-	url := viper.GetString("url")
-	username := viper.GetString("username")
-	password := viper.GetString("password")
+	// Delete API가 정상동작하지 않아 cli_extend로 대체
+	// reqUrl := fmt.Sprintf("%s/rest/apv/loadbalancing/slb/group/Group/%s/members", config.URL, groupname)
+	reqUrl := fmt.Sprintf("%s/rest/apv/cli_extend", config.URL)
+	fmt.Println("Request URL:", reqUrl)
+	deleteCommand := fmt.Sprintf("no slb group member %s %s", groupname, membername)
+	thisReq := CliRequest{deleteCommand}
+	//JSON 인코딩
+	jsonBytes, err := json.Marshal(thisReq)
+	if err != nil {
+		panic(err)
+	}
 
-	reqUrl := fmt.Sprintf("%s/rest/apv/loadbalancing/slb/group/Group/%s/members", url, groupname)
-	// fmt.Println("Request URL:", reqUrl)
-	req, err := http.NewRequest(http.MethodDelete, reqUrl, nil)
+	req, err := http.NewRequest(http.MethodPost, reqUrl, bytes.NewBuffer(jsonBytes))
 	if err != nil {
 		panic(fmt.Errorf("fatal error create http request: %w", err))
 	}
 
-	req.Header.Add("Authorization", "Basic "+BasicAuth(username, password))
+	req.Header.Add("Authorization", "Basic "+basicAuth(config.Username, config.Password))
 	client := &http.Client{}
 
 	res, err := client.Do(req)
@@ -224,25 +218,30 @@ func RemoveGroupMember(groupname string, membername string, force bool) error {
 	}
 	//fmt.Println("body:", string(body))
 
-	thisRes := GroupResult{}
+	thisRes := CliResponse{}
 	parseErr := json.Unmarshal(body, &thisRes) // json parse
 
 	if parseErr != nil {
 		panic(parseErr)
 	}
 
-	// fmt.Println("members:", thisRes.Group.Members)
+	if thisRes.Contents != "" {
+		panic(fmt.Errorf("error removing member: %s from group: %s", membername, groupname))
+	}
+
+	isMember, err = isGroupMember(groupname, membername)
+	if !isMember || err != nil {
+		panic(fmt.Errorf("error checking group member: %w", err))
+	}
+	fmt.Println("Member: " + membername + " is removed from group: " + groupname)
+
 	return nil
 }
 
 func ShowGroupMember(groupname string) error {
 	fmt.Println("Showing members of group: " + groupname)
 
-	err := viper.ReadInConfig()
-	if err != nil { // Handle errors reading the config file
-		panic(fmt.Errorf("fatal error config file: %w", err))
-	}
-	// fmt.Println("Configuring VIPER with username: " + viper.GetString("username") + " and password: " + viper.GetString("password"))
+	_ = viper.Unmarshal(&config)
 
 	members, err := getMembers(groupname)
 	if err != nil {
@@ -273,18 +272,14 @@ func isGroupMember(groupname string, membername string) (bool, error) {
 }
 
 func getMembers(groupname string) ([]Member, error) {
-	url := viper.GetString("url")
-	username := viper.GetString("username")
-	password := viper.GetString("password")
-
-	reqUrl := fmt.Sprintf("%s/rest/apv/loadbalancing/slb/group/Group/%s/members", url, groupname)
+	reqUrl := fmt.Sprintf("%s/rest/apv/loadbalancing/slb/group/Group/%s/members", config.URL, groupname)
 	// fmt.Println("Request URL:", reqUrl)
 	req, err := http.NewRequest(http.MethodGet, reqUrl, nil)
 	if err != nil {
 		panic(fmt.Errorf("fatal error create http request: %w", err))
 	}
 
-	req.Header.Add("Authorization", "Basic "+BasicAuth(username, password))
+	req.Header.Add("Authorization", "Basic "+basicAuth(config.Username, config.Password))
 	client := &http.Client{}
 
 	res, err := client.Do(req)
@@ -302,7 +297,7 @@ func getMembers(groupname string) ([]Member, error) {
 	}
 	//fmt.Println("body:", string(body))
 
-	thisRes := GroupResult{}
+	thisRes := GroupResponse{}
 	parseErr := json.Unmarshal(body, &thisRes) // json parse
 
 	if parseErr != nil {
@@ -313,8 +308,10 @@ func getMembers(groupname string) ([]Member, error) {
 	return thisRes.Group.Members, nil
 }
 
-func BasicAuth(username string, password string) string {
+func basicAuth(username string, password string) string {
 	auth := username + ":" + password
+
+	//fmt.Println("auth:", auth)
 	return base64.StdEncoding.EncodeToString([]byte(auth))
 }
 
@@ -324,7 +321,7 @@ func Test() {
 	member2 := Member{"kubernetes-dev-32443-2", 100, 1, true, "active"}
 	member3 := Member{"kubernetes-dev-32443-3", 100, 1, true, "active"}
 	group := Group{GroupName: "kubernetes-dev-32443-gr", Members: []Member{member1, member2, member3}}
-	resultJSON := GroupResult{group}
+	resultJSON := GroupResponse{group}
 	//JSON 인코딩
 	jsonBytes, err := json.Marshal(resultJSON)
 	if err != nil {
@@ -337,7 +334,7 @@ func Test() {
 	// body := []byte(`{"group": {"instance_id": "kubernetes-dev-32443-gr"}}`)
 	// fmt.Println("body:\n" + string(body))
 
-	thisRes := GroupResult{}
+	thisRes := GroupResponse{}
 	parseErr := json.Unmarshal(jsonBytes, &thisRes) // json parse
 
 	if parseErr != nil {
