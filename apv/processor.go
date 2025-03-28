@@ -75,7 +75,7 @@ func ConfigureLogin(username string, password string) error {
 	// fmt.Println("Configuring APV with username: " + username + " and password: " + password)
 	viper.Set("username", username)
 	viper.Set("password", password)
-	config = Config{Username: username, Password: password}
+	//config = Config{Username: username, Password: password}
 	viper.WriteConfig()
 	//fmt.Println("Configuring VIPER with username: " + viper.GetString("username") + " and password: " + viper.GetString("password"))
 	fmt.Println("Configuring viper with username and password")
@@ -87,7 +87,7 @@ func ConfigureServer(url string, skipVerify bool) error {
 	// fmt.Println("Configuring APV with username: " + username + " and password: " + password)
 	viper.Set("url", url)
 	viper.Set("skip-verify", skipVerify)
-	config = Config{URL: url}
+	//config = Config{URL: url, SkipVerify: skipVerify}
 	viper.WriteConfig()
 	// fmt.Println("Configuring VIPER with url: " + viper.GetString("url"))
 	fmt.Println("Configuring viper with URL")
@@ -249,6 +249,7 @@ func ShowGroupMember(groupname string) error {
 	fmt.Println("Showing members of group: " + groupname)
 
 	_ = viper.Unmarshal(&config)
+	fmt.Println("config: ", config)
 
 	members, err := getMembers(groupname)
 	if err != nil {
@@ -281,6 +282,7 @@ func isGroupMember(groupname string, membername string) (bool, error) {
 func getMembers(groupname string) ([]Member, error) {
 	reqUrl := fmt.Sprintf("%s/rest/apv/loadbalancing/slb/group/Group/%s/members", config.URL, groupname)
 	// fmt.Println("Request URL:", reqUrl)
+	fmt.Println("SkipVerify:", config.SkipVerify)
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: config.SkipVerify}
 	req, err := http.NewRequest(http.MethodGet, reqUrl, nil)
 	if err != nil {
