@@ -26,13 +26,14 @@ to quickly create a Cobra application.`,
 		fmt.Println("configServer called")
 
 		url, _ := cmd.Flags().GetString("url")
+		skipVerify, _ := cmd.Flags().GetBool("skip-verify")
 
 		if len(args) > 0 {
 			fmt.Println("You're arguments were: " + strings.Join(args, ","))
 		} else {
 			// fmt.Println("Please provide the required arguments")
 			// fmt.Println("Value of url flag: " + url)
-			apv.ConfigureServer(url)
+			apv.ConfigureServer(url, skipVerify)
 		}
 	},
 }
@@ -50,6 +51,7 @@ func init() {
 	// is called directly, e.g.:
 	// configServerCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 	configServerCmd.Flags().StringP("url", "u", "", "url for server")
+	configServerCmd.Flags().BoolP("skip-verify", "s", false, "skip verify SSL cert")
 
 	// Making Flags Required
 	configServerCmd.MarkPersistentFlagRequired("url")

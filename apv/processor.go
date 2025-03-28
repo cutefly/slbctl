@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"crypto/tls"
 	"io"
 	"net/http"
 
@@ -13,9 +14,10 @@ import (
 )
 
 type Config struct {
-	Username string `yaml:"username"`
-	Password string `yaml:"password"`
-	URL      string `yaml:"url"`
+	Username   string `yaml:"username"`
+	Password   string `yaml:"password"`
+	URL        string `yaml:"url"`
+	SkipVerify bool   `yaml:"skip-verify"`
 }
 
 type Member struct {
@@ -80,10 +82,11 @@ func ConfigureLogin(username string, password string) error {
 	return nil
 }
 
-func ConfigureServer(url string) error {
+func ConfigureServer(url string, skipVerify bool) error {
 	_ = viper.Unmarshal(&config)
 	// fmt.Println("Configuring APV with username: " + username + " and password: " + password)
 	viper.Set("url", url)
+	viper.Set("skip-verify", skipVerify)
 	config = Config{URL: url}
 	viper.WriteConfig()
 	// fmt.Println("Configuring VIPER with url: " + viper.GetString("url"))
@@ -116,12 +119,14 @@ func AddGroupMember(groupname string, membername string) error {
 		panic(err)
 	}
 
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: config.SkipVerify}
 	req, err := http.NewRequest(http.MethodPost, reqUrl, bytes.NewBuffer(jsonBytes))
 	if err != nil {
 		panic(fmt.Errorf("fatal error create http request: %w", err))
 	}
 
 	req.Header.Add("Authorization", "Basic "+basicAuth(config.Username, config.Password))
+	req.Header.Add("Accept", "application/json")
 	client := &http.Client{}
 
 	res, err := client.Do(req)
@@ -195,12 +200,14 @@ func RemoveGroupMember(groupname string, membername string, force bool) error {
 		panic(err)
 	}
 
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: config.SkipVerify}
 	req, err := http.NewRequest(http.MethodPost, reqUrl, bytes.NewBuffer(jsonBytes))
 	if err != nil {
 		panic(fmt.Errorf("fatal error create http request: %w", err))
 	}
 
 	req.Header.Add("Authorization", "Basic "+basicAuth(config.Username, config.Password))
+	req.Header.Add("Accept", "application/json")
 	client := &http.Client{}
 
 	res, err := client.Do(req)
@@ -274,12 +281,14 @@ func isGroupMember(groupname string, membername string) (bool, error) {
 func getMembers(groupname string) ([]Member, error) {
 	reqUrl := fmt.Sprintf("%s/rest/apv/loadbalancing/slb/group/Group/%s/members", config.URL, groupname)
 	// fmt.Println("Request URL:", reqUrl)
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: config.SkipVerify}
 	req, err := http.NewRequest(http.MethodGet, reqUrl, nil)
 	if err != nil {
 		panic(fmt.Errorf("fatal error create http request: %w", err))
 	}
 
 	req.Header.Add("Authorization", "Basic "+basicAuth(config.Username, config.Password))
+	req.Header.Add("Accept", "application/json")
 	client := &http.Client{}
 
 	res, err := client.Do(req)
