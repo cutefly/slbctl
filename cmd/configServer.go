@@ -12,9 +12,9 @@ import (
 	"slbctl/apv"
 )
 
-// showMemberCmd represents the showMember command
-var showMemberCmd = &cobra.Command{
-	Use:   "member",
+// configServerCmd represents the server command
+var configServerCmd = &cobra.Command{
+	Use:   "server",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -22,30 +22,35 @@ and usage of using your command. For example:
 Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
-	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("showMember called")
-		if len(args) > 1 {
+		fmt.Println("configServer called")
+
+		url, _ := cmd.Flags().GetString("url")
+
+		if len(args) > 0 {
 			fmt.Println("You're arguments were: " + strings.Join(args, ","))
-		} else if len(args) == 1 {
-			// fmt.Println("Value of group arg: " + args[0])
-			apv.ShowGroupMember(args[0])
 		} else {
-			fmt.Println("Please provide the required arguments")
+			// fmt.Println("Please provide the required arguments")
+			// fmt.Println("Value of url flag: " + url)
+			apv.ConfigureServer(url)
 		}
 	},
 }
 
 func init() {
-	showCmd.AddCommand(showMemberCmd)
+	configCmd.AddCommand(configServerCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// showMemberCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// configServerCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// showMemberCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// configServerCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	configServerCmd.Flags().StringP("url", "u", "", "url for server")
+
+	// Making Flags Required
+	configServerCmd.MarkPersistentFlagRequired("url")
 }

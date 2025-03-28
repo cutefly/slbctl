@@ -1,20 +1,21 @@
 package apv
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
 
-	"io/ioutil"
+	"io"
 	"net/http"
 
 	"github.com/spf13/viper"
 )
 
 type Config struct {
-	username string
-	password string
-	url      string
+	Username string `json:"username"`
+	Password string `json:"password"`
+	URL      string `json:"url"`
 }
 
 type Member struct {
@@ -25,17 +26,23 @@ type Member struct {
 	ActiveReason string `json:"active_reason"`
 }
 
-type Group struct {
+type SimpleGroup struct {
 	InstanceId string   `json:"instance_id"`
 	Members    []Member `json:"members"`
 }
 
-type GroupMember struct {
+type GroupResult struct {
 	Group Group `json:"Group"`
 }
 
-type GroupDetail struct {
+type GroupRequest struct {
+	RealService string `json:"real_service"`
+}
+
+type Group struct {
 	InstanceId           string   `json:"instance_id"`
+	Group                string   `json:"group"`
+	RealService          string   `json:"real_service"`
 	GroupName            string   `json:"group_name"`
 	Method               string   `json:"method"`
 	Activation           int      `json:"activation"`
@@ -51,70 +58,73 @@ type GroupDetail struct {
 	GroupPolicyScopeName []string `json:"group_policy_scope_name"`
 }
 
+var config Config
+
 func ConfigureLogin(username string, password string) error {
 	viper.ReadInConfig()
-	fmt.Println("Configuring APV with username: " + username + " and password: " + password)
+	// fmt.Println("Configuring APV with username: " + username + " and password: " + password)
 	viper.Set("username", username)
 	viper.Set("password", password)
 	viper.WriteConfigAs("./.config")
 	//viper.WriteConfig()
-	fmt.Println("Configuring VIPER with username: " + viper.GetString("username") + " and password: " + viper.GetString("password"))
+	//fmt.Println("Configuring VIPER with username: " + viper.GetString("username") + " and password: " + viper.GetString("password"))
+	fmt.Println("Configuring viper with username and password")
+
+	config.Username = username
+	config.Password = password
+
 	return nil
 }
 
 func ConfigureServer(url string) error {
 	viper.ReadInConfig()
-	fmt.Println("Configuring APV with url: " + url)
+	// fmt.Println("Configuring APV with url: " + url)
 	viper.Set("url", url)
 	viper.WriteConfigAs("./.config")
 	//viper.WriteConfig()
-	fmt.Println("Configuring VIPER with url: " + viper.GetString("url"))
+	// fmt.Println("Configuring VIPER with url: " + viper.GetString("url"))
+	fmt.Println("Configuring viper with URL")
+
+	config.URL = url
+
 	return nil
 }
 
 func AddGroupMember(groupname string, membername string) error {
 	fmt.Println("Adding member: " + membername + " to group: " + groupname)
+
 	err := viper.ReadInConfig()
 	if err != nil { // Handle errors reading the config file
 		panic(fmt.Errorf("fatal error config file: %w", err))
 	}
-	fmt.Println("Configuring VIPER with username: " + viper.GetString("username") + " and password: " + viper.GetString("password"))
+	// fmt.Println("Configuring VIPER with username: " + viper.GetString("username") + " and password: " + viper.GetString("password"))
+
 	// show slb group member를 통해 그룹에 소속되어 있는지 확인
+	isMember, err := isGroupMember(groupname, membername)
 	// 소속이 되어 있는 경우 skip, no error
-	// 소속이 되어 있지 않은 경우 그룹에 추가
-	return nil
-}
-
-func RemoveGroupMember(groupname string, membername string, force bool) error {
-	fmt.Println("Removing member: "+membername+" from group: "+groupname+" with force:", force)
-	err := viper.ReadInConfig()
-	if err != nil { // Handle errors reading the config file
-		panic(fmt.Errorf("fatal error config file: %w", err))
+	if err != nil {
+		return fmt.Errorf("error checking group membership: %w", err)
 	}
-	fmt.Println("Configuring VIPER with username: " + viper.GetString("username") + " and password: " + viper.GetString("password"))
-	// show slb group member를 통해 그룹에 소속되어 있는지 확인
-	// 소속이 되어 있지 않은 경우 skip, no error
-	// 소속이 되어 있는 경우 force=false 인 경우 다른 멤버가 있는지 확인하여 다른 멤버가 있는 경우 요청한 멤버를 그룹에서 제거
-	// 소속이 되어 있는 경우 force=false 인 경우 다른 멤버가 있는지 확인하여 다른 멤버가 없는 경우 skip, err 발생
-	// 소속이 되어 있는 경우 force=true 인 경우 요청한 멤버를 그룹에서 제거
-	return nil
-}
-
-func ShowGroupMember(groupname string) error {
-	fmt.Println("Showing members of group: " + groupname)
-
-	err := viper.ReadInConfig()
-	if err != nil { // Handle errors reading the config file
-		panic(fmt.Errorf("fatal error config file: %w", err))
+	if isMember {
+		fmt.Println("Member: " + membername + " is already a member of group: " + groupname)
+		return nil
 	}
-	fmt.Println("Configuring VIPER with username: " + viper.GetString("username") + " and password: " + viper.GetString("password"))
+
 	url := viper.GetString("url")
 	username := viper.GetString("username")
 	password := viper.GetString("password")
 
+	// 소속이 되어 있지 않은 경우 그룹에 추가
 	reqUrl := fmt.Sprintf("%s/rest/apv/loadbalancing/slb/group/Group/%s/members", url, groupname)
-	fmt.Println("Request URL:", reqUrl)
-	req, err := http.NewRequest("GET", reqUrl, nil)
+	// fmt.Println("Request URL:", reqUrl)
+	groupRequest := GroupRequest{membername}
+	//JSON 인코딩
+	jsonBytes, err := json.Marshal(groupRequest)
+	if err != nil {
+		panic(err)
+	}
+
+	req, err := http.NewRequest(http.MethodPost, reqUrl, bytes.NewBuffer(jsonBytes))
 	if err != nil {
 		panic(fmt.Errorf("fatal error create http request: %w", err))
 	}
@@ -130,28 +140,211 @@ func ShowGroupMember(groupname string) error {
 
 	defer res.Body.Close()
 
-	body, err := ioutil.ReadAll(res.Body) // body를 읽으면 이렇게 해야 된다.
+	body, err := io.ReadAll(res.Body) // body를 읽으면 이렇게 해야 된다.
 
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("body:", string(body)) // body {"code":200,"message":"hi"}
+	// fmt.Println("body:", string(body))
 
-	thisRes := GroupMember{}
+	thisRes := GroupResult{}
 	parseErr := json.Unmarshal(body, &thisRes) // json parse
 
 	if parseErr != nil {
 		panic(parseErr)
 	}
 
-	fmt.Println("group:", thisRes) // body {"code":200,"message":"hi"}
+	if thisRes.Group.RealService != membername {
+		panic(fmt.Errorf("error adding member: %s to group: %s", membername, groupname))
+	}
+	fmt.Println("Member: " + membername + " is a member of group: " + groupname)
 
 	return nil
+}
+
+func RemoveGroupMember(groupname string, membername string, force bool) error {
+	fmt.Println("Removing member: "+membername+" from group: "+groupname+" with force:", force)
+	err := viper.ReadInConfig()
+	if err != nil { // Handle errors reading the config file
+		panic(fmt.Errorf("fatal error config file: %w", err))
+	}
+	fmt.Println("Configuring VIPER with username: " + viper.GetString("username") + " and password: " + viper.GetString("password"))
+
+	// show slb group member를 통해 그룹에 소속되어 있는지 확인
+	isMember, err := isGroupMember(groupname, membername)
+	// 소속이 되어 있지 않은 경우 skip, no error
+	if err != nil {
+		return fmt.Errorf("error checking group membership: %w", err)
+	}
+	if !isMember {
+		fmt.Println("Member: " + membername + " is already not a member of group: " + groupname)
+		return nil
+	}
+
+	// 소속이 되어 있는 경우 force=false 인 경우 다른 멤버가 있는지 확인하여 다른 멤버가 있는 경우 요청한 멤버를 그룹에서 제거
+	if !force {
+		// 소속이 되어 있는 경우 force=false 인 경우 다른 멤버가 있는지 확인하여 다른 멤버가 없는 경우 skip, err 발생
+		members, err := getMembers(groupname)
+		if err != nil {
+			panic(fmt.Errorf("fatal error get members: %w", err))
+		}
+		if len(members) <= 1 && members[0].RealService == membername {
+			fmt.Println("Member: " + membername + " is the only member of group: " + groupname)
+			return fmt.Errorf("error removing member: %s from group: %s, no other members", membername, groupname)
+		}
+	}
+
+	// 소속이 되어 있는 경우 force=true 인 경우 요청한 멤버를 그룹에서 제거
+	url := viper.GetString("url")
+	username := viper.GetString("username")
+	password := viper.GetString("password")
+
+	reqUrl := fmt.Sprintf("%s/rest/apv/loadbalancing/slb/group/Group/%s/members", url, groupname)
+	// fmt.Println("Request URL:", reqUrl)
+	req, err := http.NewRequest(http.MethodDelete, reqUrl, nil)
+	if err != nil {
+		panic(fmt.Errorf("fatal error create http request: %w", err))
+	}
+
+	req.Header.Add("Authorization", "Basic "+BasicAuth(username, password))
+	client := &http.Client{}
+
+	res, err := client.Do(req)
+
+	if err != nil {
+		panic(fmt.Errorf("fatal error http request: %w", err))
+	}
+
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body) // body를 읽으면 이렇게 해야 된다.
+
+	if err != nil {
+		panic(err)
+	}
+	//fmt.Println("body:", string(body))
+
+	thisRes := GroupResult{}
+	parseErr := json.Unmarshal(body, &thisRes) // json parse
+
+	if parseErr != nil {
+		panic(parseErr)
+	}
+
+	// fmt.Println("members:", thisRes.Group.Members)
+	return nil
+}
+
+func ShowGroupMember(groupname string) error {
+	fmt.Println("Showing members of group: " + groupname)
+
+	err := viper.ReadInConfig()
+	if err != nil { // Handle errors reading the config file
+		panic(fmt.Errorf("fatal error config file: %w", err))
+	}
+	// fmt.Println("Configuring VIPER with username: " + viper.GetString("username") + " and password: " + viper.GetString("password"))
+
+	members, err := getMembers(groupname)
+	if err != nil {
+		panic(fmt.Errorf("fatal error create http request: %w", err))
+	}
+
+	for _, s := range members {
+		fmt.Println(groupname + "\t" + s.RealService)
+	}
+
+	return nil
+}
+
+func isGroupMember(groupname string, membername string) (bool, error) {
+	members, err := getMembers(groupname)
+	if err != nil {
+		panic(fmt.Errorf("fatal error get members: %w", err))
+	}
+
+	for _, s := range members {
+		if s.RealService == membername {
+			//fmt.Println("member:", s.RealService)
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func getMembers(groupname string) ([]Member, error) {
+	url := viper.GetString("url")
+	username := viper.GetString("username")
+	password := viper.GetString("password")
+
+	reqUrl := fmt.Sprintf("%s/rest/apv/loadbalancing/slb/group/Group/%s/members", url, groupname)
+	// fmt.Println("Request URL:", reqUrl)
+	req, err := http.NewRequest(http.MethodGet, reqUrl, nil)
+	if err != nil {
+		panic(fmt.Errorf("fatal error create http request: %w", err))
+	}
+
+	req.Header.Add("Authorization", "Basic "+BasicAuth(username, password))
+	client := &http.Client{}
+
+	res, err := client.Do(req)
+
+	if err != nil {
+		panic(fmt.Errorf("fatal error http request: %w", err))
+	}
+
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body) // body를 읽으면 이렇게 해야 된다.
+
+	if err != nil {
+		panic(err)
+	}
+	//fmt.Println("body:", string(body))
+
+	thisRes := GroupResult{}
+	parseErr := json.Unmarshal(body, &thisRes) // json parse
+
+	if parseErr != nil {
+		panic(parseErr)
+	}
+
+	// fmt.Println("members:", thisRes.Group.Members)
+	return thisRes.Group.Members, nil
 }
 
 func BasicAuth(username string, password string) string {
 	auth := username + ":" + password
 	return base64.StdEncoding.EncodeToString([]byte(auth))
+}
+
+func Test() {
+	fmt.Println("do test")
+	member1 := Member{"kubernetes-dev-32443-1", 100, 1, true, "active"}
+	member2 := Member{"kubernetes-dev-32443-2", 100, 1, true, "active"}
+	member3 := Member{"kubernetes-dev-32443-3", 100, 1, true, "active"}
+	group := Group{GroupName: "kubernetes-dev-32443-gr", Members: []Member{member1, member2, member3}}
+	resultJSON := GroupResult{group}
+	//JSON 인코딩
+	jsonBytes, err := json.Marshal(resultJSON)
+	if err != nil {
+		panic(err)
+	}
+	//JSON 바이트를 문자열로 변경
+	jsonString := string(jsonBytes)
+	fmt.Println("group:", jsonString)
+
+	// body := []byte(`{"group": {"instance_id": "kubernetes-dev-32443-gr"}}`)
+	// fmt.Println("body:\n" + string(body))
+
+	thisRes := GroupResult{}
+	parseErr := json.Unmarshal(jsonBytes, &thisRes) // json parse
+
+	if parseErr != nil {
+		panic(parseErr)
+	}
+
+	fmt.Println("members:", len(thisRes.Group.Members))
 }
 
 type MemberType struct {
@@ -164,54 +357,26 @@ type GroupType struct {
 	Group MemberType
 }
 
-func Test() {
-	fmt.Println("do test")
-	member1 := Member{"kubernetes-dev-32443-1", 100, 1, true, "active"}
-	member2 := Member{"kubernetes-dev-32443-2", 100, 1, true, "active"}
-	member3 := Member{"kubernetes-dev-32443-3", 100, 1, true, "active"}
-	group := Group{"kubernetes-dev-32443-gr", []Member{member1, member2, member3}}
-	resultJSON := GroupMember{group}
+func TestJson() {
+	mem := MemberType{"Dusdj", 23, true}
+	group := GroupType{mem}
+
 	//JSON 인코딩
-	jsonBytes, err := json.Marshal(resultJSON)
+	jsonBytes, err := json.Marshal(group)
 	if err != nil {
 		panic(err)
 	}
+
 	//JSON 바이트를 문자열로 변경
 	jsonString := string(jsonBytes)
-	fmt.Println("group:", jsonString)
+	fmt.Println(jsonString)
 
-	// body := []byte(`{"group": {"instance_id": "kubernetes-dev-32443-gr"}}`)
-	// fmt.Println("body:\n" + string(body)) // body {"code":200,"message":"hi"}
-
-	groupMember := GroupMember{}
-	parseErr := json.Unmarshal(jsonBytes, &groupMember) // json parse
-
-	if parseErr != nil {
-		panic(parseErr)
+	//JSON 디코딩
+	newGroup := GroupType{}
+	err = json.Unmarshal(jsonBytes, &newGroup)
+	if err != nil {
+		panic(err)
 	}
 
-	fmt.Println("members:", len(groupMember.Group.Members)) // body {"code":200,"message":"hi"}
-	/*
-		mem := MemberType{"Dusdj", 23, true}
-		group := GroupType{mem}
-
-		//JSON 인코딩
-		jsonBytes, err := json.Marshal(group)
-		if err != nil {
-			panic(err)
-		}
-
-		//JSON 바이트를 문자열로 변경
-		jsonString := string(jsonBytes)
-		fmt.Println(jsonString)
-
-		//JSON 디코딩
-		newGroup := GroupType{}
-		err = json.Unmarshal(jsonBytes, &newGroup)
-		if err != nil {
-			panic(err)
-		}
-
-		fmt.Println(newGroup.Group.Name)
-	*/
+	fmt.Println(newGroup.Group.Name)
 }

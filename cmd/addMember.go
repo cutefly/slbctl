@@ -28,8 +28,8 @@ to quickly create a Cobra application.`,
 		if len(args) > 2 {
 			fmt.Println("You're arguments were: " + strings.Join(args, ","))
 		} else if len(args) == 2 {
-			fmt.Println("Value of group arg: " + args[0])
-			fmt.Println("Value of member arg: " + args[1])
+			// fmt.Println("Value of group arg: " + args[0])
+			// fmt.Println("Value of member arg: " + args[1])
 			apv.AddGroupMember(args[0], args[1])
 		} else {
 			fmt.Println("Please provide the required arguments")
