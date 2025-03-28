@@ -5,6 +5,7 @@
 ## install go
 
 ```
+
 ```
 
 ## cobra library
@@ -25,7 +26,7 @@ cobra-cli add login
 
 ```sh
 go run . config login --username=username --password=password
-go run . config server --url https://132b1854-53f1-489b-9152-ac9dad68bdcb.mock.pstmn.io
+go run . config server --url https://132b1854-53f1-489b-9152-ac9dad68bdcb.mock.pstmn.io --skip-verify=true
 go run . show member kubernetes-dev-32443-gr
 go run . add member kubernetes-dev-32443-gr kubernetes-dev-32443-3
 go run . remove member kubernetes-dev-32443-gr kubernetes-dev-32443-3 --force=true

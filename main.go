@@ -46,7 +46,7 @@ func main() {
 		fmt.Println("Error on Unmarshal Viper Config")
 		panic(err)
 	}
-	// fmt.Println(config)
+	// fmt.Println("config:", config)
 
 	cmd.Execute(VERSION)
 }

@@ -17,7 +17,7 @@ type Config struct {
 	Username   string `yaml:"username"`
 	Password   string `yaml:"password"`
 	URL        string `yaml:"url"`
-	SkipVerify bool   `yaml:"skip-verify"`
+	SkipVerify bool   `yaml:"skip-verify" mapstructure:"skip-verify"`
 }
 
 type Member struct {
@@ -306,7 +306,7 @@ func getMembers(groupname string) ([]Member, error) {
 	if err != nil {
 		panic(err)
 	}
-	//fmt.Println("body:", string(body))
+	// fmt.Println("body:", string(body))
 
 	thisRes := GroupResponse{}
 	parseErr := json.Unmarshal(body, &thisRes) // json parse
