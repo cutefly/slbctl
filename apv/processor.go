@@ -162,7 +162,7 @@ func RemoveGroupMember(groupname string, membername string, force bool) error {
 	isMember, err := isGroupMember(groupname, membername)
 	// 소속이 되어 있지 않은 경우 skip, no error
 	if err != nil {
-		return fmt.Errorf("error checking group membership: %w", err)
+		return fmt.Errorf("error checking group member: %w", err)
 	}
 	if !isMember {
 		fmt.Println("Member: " + membername + " is already not a member of group: " + groupname)
@@ -230,7 +230,7 @@ func RemoveGroupMember(groupname string, membername string, force bool) error {
 	}
 
 	isMember, err = isGroupMember(groupname, membername)
-	if !isMember || err != nil {
+	if isMember || err != nil {
 		panic(fmt.Errorf("error checking group member: %w", err))
 	}
 	fmt.Println("Member: " + membername + " is removed from group: " + groupname)
