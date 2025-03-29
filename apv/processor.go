@@ -13,61 +13,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-type Config struct {
-	Username   string `yaml:"username"`
-	Password   string `yaml:"password"`
-	URL        string `yaml:"url"`
-	SkipVerify bool   `yaml:"skip-verify" mapstructure:"skip-verify"`
-}
-
-type Member struct {
-	RealService  string `json:"real_service"`
-	Weight       int    `json:"weight"`
-	Priority     int    `json:"priority"`
-	ActiveStatus bool   `json:"active_status"`
-	ActiveReason string `json:"active_reason"`
-}
-
-type Group struct {
-	InstanceId           string   `json:"instance_id"`
-	Group                string   `json:"group"`
-	RealService          string   `json:"real_service"`
-	GroupName            string   `json:"group_name"`
-	Method               string   `json:"method"`
-	Activation           int      `json:"activation"`
-	Failvoer             int      `json:"failover"`
-	PriorityMode         bool     `json:"priority_mode"`
-	Enable               bool     `json:"enable"`
-	Protocol             string   `json:"protocol"`
-	ProxyProtocol        bool     `json:"proxy_protocol"`
-	Members              []Member `json:"members"`
-	HealthRelation       string   `json:"health_relation"`
-	HcTcpTempalte        []string `json:"hc_tcp_tempalte"`
-	HcHttpTempalte       []string `json:"hc_http_tempalte"`
-	GroupPolicyScopeName []string `json:"group_policy_scope_name"`
-}
-
-type SimpleGroup struct {
-	InstanceId string   `json:"instance_id"`
-	Members    []Member `json:"members"`
-}
-
-type GroupRequest struct {
-	RealService string `json:"real_service"`
-}
-
-type GroupResponse struct {
-	Group Group `json:"Group"`
-}
-
-type CliRequest struct {
-	Cmd string `json:"cmd"`
-}
-
-type CliResponse struct {
-	Contents string `json:"contents"`
-}
-
 var config Config
 
 func ConfigureLogin(username string, password string) error {
@@ -90,7 +35,7 @@ func ConfigureServer(url string, skipVerify bool) error {
 	//config = Config{URL: url, SkipVerify: skipVerify}
 	viper.WriteConfig()
 	// fmt.Println("Configuring VIPER with url: " + viper.GetString("url"))
-	fmt.Println("Configuring viper with URL")
+	fmt.Println("Configuring viper with url and skip-verify")
 	return nil
 }
 
@@ -249,7 +194,7 @@ func ShowGroupMember(groupname string) error {
 	fmt.Println("Showing members of group: " + groupname)
 
 	_ = viper.Unmarshal(&config)
-	fmt.Println("config: ", config)
+	// fmt.Println("config: ", config)
 
 	members, err := getMembers(groupname)
 	if err != nil {
@@ -259,6 +204,58 @@ func ShowGroupMember(groupname string) error {
 	for _, s := range members {
 		fmt.Println(groupname + "\t" + s.RealService)
 	}
+
+	return nil
+}
+
+func ExecuteCommand(cmd string) error {
+	fmt.Println("Executing command: " + cmd)
+
+	_ = viper.Unmarshal(&config)
+	// fmt.Println("config: ", config)
+
+	reqUrl := fmt.Sprintf("%s/rest/apv/cli_extend", config.URL)
+	fmt.Println("Request URL:", reqUrl)
+	thisReq := CliRequest{cmd}
+	//JSON 인코딩
+	jsonBytes, err := json.Marshal(thisReq)
+	if err != nil {
+		panic(err)
+	}
+
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: config.SkipVerify}
+	req, err := http.NewRequest(http.MethodPost, reqUrl, bytes.NewBuffer(jsonBytes))
+	if err != nil {
+		panic(fmt.Errorf("fatal error create http request: %w", err))
+	}
+
+	req.Header.Add("Authorization", "Basic "+basicAuth(config.Username, config.Password))
+	req.Header.Add("Accept", "application/json")
+	client := &http.Client{}
+
+	res, err := client.Do(req)
+
+	if err != nil {
+		panic(fmt.Errorf("fatal error http request: %w", err))
+	}
+
+	defer res.Body.Close()
+
+	body, err := io.ReadAll(res.Body) // body를 읽으면 이렇게 해야 된다.
+
+	if err != nil {
+		panic(err)
+	}
+	// fmt.Println("body:", string(body))
+
+	thisRes := CliResponse{}
+	parseErr := json.Unmarshal(body, &thisRes) // json parse
+
+	if parseErr != nil {
+		panic(parseErr)
+	}
+
+	fmt.Println(thisRes.Contents)
 
 	return nil
 }
@@ -282,7 +279,6 @@ func isGroupMember(groupname string, membername string) (bool, error) {
 func getMembers(groupname string) ([]Member, error) {
 	reqUrl := fmt.Sprintf("%s/rest/apv/loadbalancing/slb/group/Group/%s/members", config.URL, groupname)
 	// fmt.Println("Request URL:", reqUrl)
-	fmt.Println("SkipVerify:", config.SkipVerify)
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: config.SkipVerify}
 	req, err := http.NewRequest(http.MethodGet, reqUrl, nil)
 	if err != nil {
@@ -353,38 +349,4 @@ func Test() {
 	}
 
 	fmt.Println("members:", len(thisRes.Group.Members))
-}
-
-type MemberType struct {
-	Name   string
-	Age    int
-	Active bool
-}
-
-type GroupType struct {
-	Group MemberType
-}
-
-func TestJson() {
-	mem := MemberType{"Dusdj", 23, true}
-	group := GroupType{mem}
-
-	//JSON 인코딩
-	jsonBytes, err := json.Marshal(group)
-	if err != nil {
-		panic(err)
-	}
-
-	//JSON 바이트를 문자열로 변경
-	jsonString := string(jsonBytes)
-	fmt.Println(jsonString)
-
-	//JSON 디코딩
-	newGroup := GroupType{}
-	err = json.Unmarshal(jsonBytes, &newGroup)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(newGroup.Group.Name)
 }
