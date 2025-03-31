@@ -135,18 +135,24 @@ func RemoveGroupMember(groupname string, membername string, force bool) error {
 	// 소속이 되어 있는 경우 force=true 인 경우 요청한 멤버를 그룹에서 제거
 	// Delete API가 정상동작하지 않아 cli_extend로 대체
 	// reqUrl := fmt.Sprintf("%s/rest/apv/loadbalancing/slb/group/Group/%s/members", config.URL, groupname)
-	reqUrl := fmt.Sprintf("%s/rest/apv/cli_extend", config.URL)
+	/*
+		reqUrl := fmt.Sprintf("%s/rest/apv/cli_extend", config.URL)
+		fmt.Println("Request URL:", reqUrl)
+		deleteCommand := fmt.Sprintf("no slb group member %s %s", groupname, membername)
+		thisReq := CliRequest{deleteCommand}
+		//JSON 인코딩
+		jsonBytes, err := json.Marshal(thisReq)
+		if err != nil {
+			panic(err)
+		}
+	*/
+
+	reqUrl := fmt.Sprintf("%s/rest/apv/batch_cli", config.URL)
 	fmt.Println("Request URL:", reqUrl)
 	deleteCommand := fmt.Sprintf("no slb group member %s %s", groupname, membername)
-	thisReq := CliRequest{deleteCommand}
-	//JSON 인코딩
-	jsonBytes, err := json.Marshal(thisReq)
-	if err != nil {
-		panic(err)
-	}
 
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: config.SkipVerify}
-	req, err := http.NewRequest(http.MethodPost, reqUrl, bytes.NewBuffer(jsonBytes))
+	req, err := http.NewRequest(http.MethodPost, reqUrl, bytes.NewBufferString(deleteCommand))
 	if err != nil {
 		panic(fmt.Errorf("fatal error create http request: %w", err))
 	}
