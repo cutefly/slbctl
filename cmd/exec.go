@@ -11,8 +11,9 @@ import (
 
 // execCmd represents the exec command
 var execCmd = &cobra.Command{
-	Use:   "exec",
-	Short: "A brief description of your command",
+	Use:     "exec",
+	Aliases: []string{"ex"},
+	Short:   "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 

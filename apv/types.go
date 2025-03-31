@@ -12,6 +12,7 @@ type Config struct {
 	Password   string `yaml:"password"`
 	URL        string `yaml:"url"`
 	SkipVerify bool   `yaml:"skip-verify" mapstructure:"skip-verify"`
+	Debug      bool   `yaml:"debug" mapstructure:"debug"`
 }
 
 type Member struct {
@@ -63,4 +64,8 @@ type CliRequest struct {
 
 type CliResponse struct {
 	Contents string `json:"contents"`
+}
+
+type BatchCliResponse struct {
+	Output string `json:"CLI Output"`
 }

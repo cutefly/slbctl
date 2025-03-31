@@ -15,6 +15,9 @@ import (
 
 var config Config
 
+/**
+ * Configure username and password
+ */
 func ConfigureLogin(username string, password string) error {
 	_ = viper.Unmarshal(&config)
 	// fmt.Println("Configuring APV with username: " + username + " and password: " + password)
@@ -27,22 +30,31 @@ func ConfigureLogin(username string, password string) error {
 	return nil
 }
 
-func ConfigureServer(url string, skipVerify bool) error {
+/**
+ * ConfigureServer configures the server URL, skip-verify and debug flag
+ */
+func ConfigureServer(url string, skipVerify bool, debug bool) error {
 	_ = viper.Unmarshal(&config)
 	// fmt.Println("Configuring APV with username: " + username + " and password: " + password)
 	viper.Set("url", url)
 	viper.Set("skip-verify", skipVerify)
+	viper.Set("debug", debug)
 	//config = Config{URL: url, SkipVerify: skipVerify}
 	viper.WriteConfig()
 	// fmt.Println("Configuring VIPER with url: " + viper.GetString("url"))
-	fmt.Println("Configuring viper with url and skip-verify")
+	fmt.Println("Configuring viper with url, skip-verify and debug flag")
 	return nil
 }
 
+/**
+ * AddGroupMember adds a member to a group.
+ */
 func AddGroupMember(groupname string, membername string) error {
-	fmt.Println("Adding member: " + membername + " to group: " + groupname)
-
 	_ = viper.Unmarshal(&config)
+	if config.Debug {
+		fmt.Println("Adding member: " + membername + " to group: " + groupname)
+	}
+
 	// show slb group member를 통해 그룹에 소속되어 있는지 확인
 	isMember, err := isGroupMember(groupname, membername)
 	// 소속이 되어 있는 경우 skip, no error
@@ -56,7 +68,9 @@ func AddGroupMember(groupname string, membername string) error {
 
 	// 소속이 되어 있지 않은 경우 그룹에 추가
 	reqUrl := fmt.Sprintf("%s/rest/apv/loadbalancing/slb/group/Group/%s/members", config.URL, groupname)
-	fmt.Println("Request URL:", reqUrl)
+	if config.Debug {
+		fmt.Println("Request URL:", reqUrl)
+	}
 	groupRequest := GroupRequest{membername}
 	//JSON 인코딩
 	jsonBytes, err := json.Marshal(groupRequest)
@@ -87,7 +101,10 @@ func AddGroupMember(groupname string, membername string) error {
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Println("body:", string(body))
+
+	if config.Debug {
+		fmt.Println("body:", string(body))
+	}
 
 	thisRes := GroupResponse{}
 	parseErr := json.Unmarshal(body, &thisRes) // json parse
@@ -104,10 +121,15 @@ func AddGroupMember(groupname string, membername string) error {
 	return nil
 }
 
+/**
+ * RemoveGroupMember removes a member from a group.
+ */
 func RemoveGroupMember(groupname string, membername string, force bool) error {
-	fmt.Println("Removing member: "+membername+" from group: "+groupname+" with force:", force)
-
 	_ = viper.Unmarshal(&config)
+	if config.Debug {
+		fmt.Println("Removing member: "+membername+" from group: "+groupname+" with force:", force)
+	}
+
 	// show slb group member를 통해 그룹에 소속되어 있는지 확인
 	isMember, err := isGroupMember(groupname, membername)
 	// 소속이 되어 있지 않은 경우 skip, no error
@@ -148,7 +170,9 @@ func RemoveGroupMember(groupname string, membername string, force bool) error {
 	*/
 
 	reqUrl := fmt.Sprintf("%s/rest/apv/batch_cli", config.URL)
-	fmt.Println("Request URL:", reqUrl)
+	if config.Debug {
+		fmt.Println("Request URL:", reqUrl)
+	}
 	deleteCommand := fmt.Sprintf("no slb group member %s %s", groupname, membername)
 
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: config.SkipVerify}
@@ -174,16 +198,19 @@ func RemoveGroupMember(groupname string, membername string, force bool) error {
 	if err != nil {
 		panic(err)
 	}
-	//fmt.Println("body:", string(body))
 
-	thisRes := CliResponse{}
+	if config.Debug {
+		fmt.Println("body:", string(body))
+	}
+
+	thisRes := BatchCliResponse{}
 	parseErr := json.Unmarshal(body, &thisRes) // json parse
 
 	if parseErr != nil {
 		panic(parseErr)
 	}
 
-	if thisRes.Contents != "" {
+	if thisRes.Output != "" {
 		panic(fmt.Errorf("error removing member: %s from group: %s", membername, groupname))
 	}
 
@@ -196,10 +223,14 @@ func RemoveGroupMember(groupname string, membername string, force bool) error {
 	return nil
 }
 
+/**
+ * ShowGroupMember showes members in a group.
+ */
 func ShowGroupMember(groupname string) error {
-	fmt.Println("Showing members of group: " + groupname)
-
 	_ = viper.Unmarshal(&config)
+	if config.Debug {
+		fmt.Println("Showing members of group: " + groupname)
+	}
 	// fmt.Println("config: ", config)
 
 	members, err := getMembers(groupname)
@@ -214,14 +245,21 @@ func ShowGroupMember(groupname string) error {
 	return nil
 }
 
+/**
+ * ExecuteCommand executes a command on the APV.
+ */
 func ExecuteCommand(cmd string) error {
-	fmt.Println("Executing command: " + cmd)
-
 	_ = viper.Unmarshal(&config)
+	if config.Debug {
+		fmt.Println("Executing command: " + cmd)
+	}
+
 	// fmt.Println("config: ", config)
 
 	reqUrl := fmt.Sprintf("%s/rest/apv/cli_extend", config.URL)
-	fmt.Println("Request URL:", reqUrl)
+	if config.Debug {
+		fmt.Println("Request URL:", reqUrl)
+	}
 	thisReq := CliRequest{cmd}
 	//JSON 인코딩
 	jsonBytes, err := json.Marshal(thisReq)
@@ -252,7 +290,10 @@ func ExecuteCommand(cmd string) error {
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Println("body:", string(body))
+
+	if config.Debug {
+		fmt.Println("body:", string(body))
+	}
 
 	thisRes := CliResponse{}
 	parseErr := json.Unmarshal(body, &thisRes) // json parse
@@ -266,6 +307,9 @@ func ExecuteCommand(cmd string) error {
 	return nil
 }
 
+/**
+ * [private] isGroupMember checks if a member is in a group.
+ */
 func isGroupMember(groupname string, membername string) (bool, error) {
 	members, err := getMembers(groupname)
 	if err != nil {
@@ -273,8 +317,10 @@ func isGroupMember(groupname string, membername string) (bool, error) {
 	}
 
 	for _, s := range members {
+		if config.Debug {
+			fmt.Println("realservice:", s.RealService)
+		}
 		if s.RealService == membername {
-			//fmt.Println("member:", s.RealService)
 			return true, nil
 		}
 	}
@@ -282,9 +328,14 @@ func isGroupMember(groupname string, membername string) (bool, error) {
 	return false, nil
 }
 
+/**
+ * [private] GetMembers gets members of a group.
+ */
 func getMembers(groupname string) ([]Member, error) {
 	reqUrl := fmt.Sprintf("%s/rest/apv/loadbalancing/slb/group/Group/%s/members", config.URL, groupname)
-	// fmt.Println("Request URL:", reqUrl)
+	if config.Debug {
+		fmt.Println("Request URL:", reqUrl)
+	}
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: config.SkipVerify}
 	req, err := http.NewRequest(http.MethodGet, reqUrl, nil)
 	if err != nil {
@@ -308,8 +359,10 @@ func getMembers(groupname string) ([]Member, error) {
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Println("body:", string(body))
 
+	if config.Debug {
+		fmt.Println("body:", string(body))
+	}
 	thisRes := GroupResponse{}
 	parseErr := json.Unmarshal(body, &thisRes) // json parse
 
@@ -321,6 +374,9 @@ func getMembers(groupname string) ([]Member, error) {
 	return thisRes.Group.Members, nil
 }
 
+/**
+ * [private] basicAuth encodes the username and password in base64.
+ */
 func basicAuth(username string, password string) string {
 	auth := username + ":" + password
 
