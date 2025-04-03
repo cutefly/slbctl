@@ -69,13 +69,15 @@ func AddGroupMember(groupname string, membername string) error {
 	// 소속이 되어 있지 않은 경우 그룹에 추가
 	reqUrl := fmt.Sprintf("%s/rest/apv/loadbalancing/slb/group/Group/%s/members", config.URL, groupname)
 	if config.Debug {
-		fmt.Println("Request URL:", reqUrl)
+		fmt.Println("Request URL:", http.MethodPost, reqUrl)
 	}
 	groupRequest := GroupRequest{membername}
-	//JSON 인코딩
 	jsonBytes, err := json.Marshal(groupRequest)
 	if err != nil {
 		panic(err)
+	}
+	if config.Debug {
+		fmt.Println("req body:", string(jsonBytes))
 	}
 
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: config.SkipVerify}
@@ -103,7 +105,7 @@ func AddGroupMember(groupname string, membername string) error {
 	}
 
 	if config.Debug {
-		fmt.Println("body:", string(body))
+		fmt.Println("res body:", string(body))
 	}
 
 	thisRes := GroupResponse{}
@@ -171,9 +173,12 @@ func RemoveGroupMember(groupname string, membername string, force bool) error {
 
 	reqUrl := fmt.Sprintf("%s/rest/apv/batch_cli", config.URL)
 	if config.Debug {
-		fmt.Println("Request URL:", reqUrl)
+		fmt.Println("Request URL:", http.MethodPost, reqUrl)
 	}
 	deleteCommand := fmt.Sprintf("no slb group member %s %s", groupname, membername)
+	if config.Debug {
+		fmt.Println("req body:", deleteCommand)
+	}
 
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: config.SkipVerify}
 	req, err := http.NewRequest(http.MethodPost, reqUrl, bytes.NewBufferString(deleteCommand))
@@ -200,7 +205,7 @@ func RemoveGroupMember(groupname string, membername string, force bool) error {
 	}
 
 	if config.Debug {
-		fmt.Println("body:", string(body))
+		fmt.Println("res body:", string(body))
 	}
 
 	thisRes := BatchCliResponse{}
@@ -258,13 +263,19 @@ func ExecuteCommand(cmd string) error {
 
 	reqUrl := fmt.Sprintf("%s/rest/apv/cli_extend", config.URL)
 	if config.Debug {
-		fmt.Println("Request URL:", reqUrl)
+		fmt.Println("Request URL:", http.MethodPost, reqUrl)
 	}
 	thisReq := CliRequest{cmd}
+	if config.Debug {
+		fmt.Println("req body:", thisReq)
+	}
 	//JSON 인코딩
 	jsonBytes, err := json.Marshal(thisReq)
 	if err != nil {
 		panic(err)
+	}
+	if config.Debug {
+		fmt.Println("req body:", string(jsonBytes))
 	}
 
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: config.SkipVerify}
@@ -292,7 +303,7 @@ func ExecuteCommand(cmd string) error {
 	}
 
 	if config.Debug {
-		fmt.Println("body:", string(body))
+		fmt.Println("res body:", string(body))
 	}
 
 	thisRes := CliResponse{}
@@ -317,9 +328,6 @@ func isGroupMember(groupname string, membername string) (bool, error) {
 	}
 
 	for _, s := range members {
-		if config.Debug {
-			fmt.Println("realservice:", s.RealService)
-		}
 		if s.RealService == membername {
 			return true, nil
 		}
@@ -334,7 +342,7 @@ func isGroupMember(groupname string, membername string) (bool, error) {
 func getMembers(groupname string) ([]Member, error) {
 	reqUrl := fmt.Sprintf("%s/rest/apv/loadbalancing/slb/group/Group/%s/members", config.URL, groupname)
 	if config.Debug {
-		fmt.Println("Request URL:", reqUrl)
+		fmt.Println("Request URL:", http.MethodGet, reqUrl)
 	}
 	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: config.SkipVerify}
 	req, err := http.NewRequest(http.MethodGet, reqUrl, nil)
@@ -361,7 +369,7 @@ func getMembers(groupname string) ([]Member, error) {
 	}
 
 	if config.Debug {
-		fmt.Println("body:", string(body))
+		fmt.Println("res body:", string(body))
 	}
 	thisRes := GroupResponse{}
 	parseErr := json.Unmarshal(body, &thisRes) // json parse
@@ -401,7 +409,7 @@ func Test() {
 	fmt.Println("group:", jsonString)
 
 	// body := []byte(`{"group": {"instance_id": "kubernetes-dev-32443-gr"}}`)
-	// fmt.Println("body:\n" + string(body))
+	// fmt.Println("res body:\n" + string(body))
 
 	thisRes := GroupResponse{}
 	parseErr := json.Unmarshal(jsonBytes, &thisRes) // json parse
