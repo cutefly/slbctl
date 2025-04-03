@@ -15,13 +15,16 @@ import (
 // configServerCmd represents the server command
 var configServerCmd = &cobra.Command{
 	Use:   "server",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Configure the server and debug options",
+	Long: `This command allows you to configure server settings and debug options within the system.  
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+For example:
+
+To set the server address to "192.168.1.100" and enable debug mode, use the following command:
+
+  cli-tool configure server --url https://192.168.1.100:9997 skip-verify true --debug true
+
+This ensures that the specified server configuration is applied and debug mode is enabled for troubleshooting and monitoring.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("configServer called")
 

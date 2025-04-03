@@ -14,14 +14,18 @@ import (
 
 // showMemberCmd represents the showMember command
 var showMemberCmd = &cobra.Command{
-	Use:   "member <groupname>",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Use:     "member <groupname>",
+	Aliases: []string{"mem"},
+	Short:   "shows the members of a group",
+	Long: `This command allows you to view the services that are currently assigned to a designated loadbalancer group.  
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+For example:
+
+To list all services in the "https-service-gr" group, use the following command:
+
+  slbctl show members https-service-gr
+
+This displays a list of all services that belong to the specified loadbalancer group, helping with access management and monitoring.`,
 	Args: cobra.ExactArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("showMember called")

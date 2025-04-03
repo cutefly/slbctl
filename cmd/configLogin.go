@@ -15,13 +15,16 @@ import (
 // configLoginCmd represents the login command
 var configLoginCmd = &cobra.Command{
 	Use:   "login",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "Configure username and password",
+	Long: `This command allows you to configure a username and password for authentication within the system.  
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+For example:
+
+To set the username to "username" and the password to "securepass", use the following command:
+
+  cli-tool configure login username securepass
+
+This ensures that the specified username and password are properly set, enabling secure access and authentication.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("configLogin called")
 

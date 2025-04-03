@@ -16,14 +16,18 @@ var force bool
 
 // removeMemberCmd represents the removeMember command
 var removeMemberCmd = &cobra.Command{
-	Use:   "member <groupname> <membername>",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Use:     "member <groupname> <membername>",
+	Aliases: []string{"mem"},
+	Short:   "remove a member from a group",
+	Long: `This command allows you to remove a specified service from a designated loadbalancer group within the system.  
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+For example:
+
+To remove a service named "https-service-1" from the "https-service-gr" group, use the following command:
+
+  slbctl remove member https-service-1 https-service-gr
+
+This ensures that the specified service is successfully removed from the loadbalancer group, revoking its access and association.`,
 	Args: cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("removeMember called")

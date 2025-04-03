@@ -14,14 +14,18 @@ import (
 
 // addMemberCmd represents the addMember command
 var addMemberCmd = &cobra.Command{
-	Use:   "member <groupname> <membername>",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Use:     "member <groupname> <membername>",
+	Aliases: []string{"mem"},
+	Short:   "add member to group",
+	Long: `This command allows you to add a specified service to a designated loadbalancer group within the system.  
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+For example:
+
+To add a service named "https-service-1" to the "https-service-gr" group, use the following command:
+
+  slbctl add member https-service-1 https-service-gr
+
+This ensures that the specified service is successfully assigned to the loadbalancer group, enabling appropriate access and management.`,
 	Args: cobra.ExactArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("addMember called")

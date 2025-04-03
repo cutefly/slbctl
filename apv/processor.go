@@ -229,7 +229,7 @@ func RemoveGroupMember(groupname string, membername string, force bool) error {
 }
 
 /**
- * ShowGroupMember showes members in a group.
+ * ShowGroupMember shows members in a group.
  */
 func ShowGroupMember(groupname string) error {
 	_ = viper.Unmarshal(&config)
