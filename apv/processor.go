@@ -15,11 +15,43 @@ import (
 
 var config Config
 
+func init() {
+	// viper.SetConfigName(".config") // name of config file (without extension)
+	// viper.SetConfigType("yaml")    // REQUIRED if the config file does not have the extension in the name
+	// viper.AddConfigPath("./")      // optionally look for config in the working directory
+	viper.SetConfigFile("config.yaml")
+	viper.SetEnvPrefix("SLBCTL")
+	viper.AutomaticEnv()
+	viper.SetConfigType("yaml")
+
+	// 설정 파일 읽어오기
+	err := viper.ReadInConfig()
+	if err != nil {
+		// fmt.Println("Error on Reading Viper Config")
+		config = Config{
+			Username:   "username2",
+			Password:   "password2",
+			URL:        "https://localhost:8080",
+			SkipVerify: false,
+			Debug:      false,
+		}
+	}
+
+	err = viper.Unmarshal(&config)
+	if err != nil {
+		fmt.Println("Error on Unmarshal Viper Config")
+		panic(err)
+	}
+
+	fmt.Println("Viper Config: ", config)
+	fmt.Println("Configuring APV with username: " + config.Username + " and password: " + config.Password)
+}
+
 /**
  * Configure username and password
  */
 func ConfigureLogin(username string, password string) error {
-	_ = viper.Unmarshal(&config)
+
 	// fmt.Println("Configuring APV with username: " + username + " and password: " + password)
 	viper.Set("username", username)
 	viper.Set("password", password)
@@ -34,8 +66,6 @@ func ConfigureLogin(username string, password string) error {
  * ConfigureServer configures the server URL, skip-verify and debug flag
  */
 func ConfigureServer(url string, skipVerify bool, debug bool) error {
-	_ = viper.Unmarshal(&config)
-	// fmt.Println("Configuring APV with username: " + username + " and password: " + password)
 	viper.Set("url", url)
 	viper.Set("skip-verify", skipVerify)
 	viper.Set("debug", debug)
@@ -50,7 +80,6 @@ func ConfigureServer(url string, skipVerify bool, debug bool) error {
  * AddGroupMember adds a member to a group.
  */
 func AddGroupMember(groupname string, membername string) error {
-	_ = viper.Unmarshal(&config)
 	if config.Debug {
 		fmt.Println("Adding member: " + membername + " to group: " + groupname)
 	}
@@ -127,7 +156,6 @@ func AddGroupMember(groupname string, membername string) error {
  * RemoveGroupMember removes a member from a group.
  */
 func RemoveGroupMember(groupname string, membername string, force bool) error {
-	_ = viper.Unmarshal(&config)
 	if config.Debug {
 		fmt.Println("Removing member: "+membername+" from group: "+groupname+" with force:", force)
 	}
@@ -232,7 +260,6 @@ func RemoveGroupMember(groupname string, membername string, force bool) error {
  * ShowGroupMember shows members in a group.
  */
 func ShowGroupMember(groupname string) error {
-	_ = viper.Unmarshal(&config)
 	if config.Debug {
 		fmt.Println("Showing members of group: " + groupname)
 	}

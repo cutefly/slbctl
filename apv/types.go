@@ -8,9 +8,9 @@ The url is the base URL for the APV API.
 The skip-verify flag is used to skip TLS verification.
 */
 type Config struct {
-	Username   string `yaml:"username"`
-	Password   string `yaml:"password"`
-	URL        string `yaml:"url"`
+	Username   string `yaml:"username" mapstructure:"username"`
+	Password   string `yaml:"password" mapstructure:"password"`
+	URL        string `yaml:"url" mapstructure:"url"`
 	SkipVerify bool   `yaml:"skip-verify" mapstructure:"skip-verify"`
 	Debug      bool   `yaml:"debug" mapstructure:"debug"`
 }
