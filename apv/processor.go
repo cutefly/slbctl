@@ -28,13 +28,7 @@ func init() {
 	err := viper.ReadInConfig()
 	if err != nil {
 		// fmt.Println("Error on Reading Viper Config")
-		config = Config{
-			Username:   "username2",
-			Password:   "password2",
-			URL:        "https://localhost:8080",
-			SkipVerify: false,
-			Debug:      false,
-		}
+		config = Config{}
 	}
 
 	err = viper.Unmarshal(&config)
