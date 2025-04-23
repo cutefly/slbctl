@@ -2,7 +2,7 @@ hello:
 	echo "Hello"
 
 run:
-	go run main.go
+	go run main.go version
 
 compile:
 	echo "Compiling for every OS and Platform"
@@ -15,12 +15,12 @@ BINARY_NAME=slbctl
 build:
 	GOARCH=arm64 GOOS=darwin go build -o bin/${BINARY_NAME}-darwin main.go
 	GOARCH=amd64 GOOS=linux go build -o bin/${BINARY_NAME}-linux main.go
-	GOARCH=amd64 GOOS=windows go build -o bin/${BINARY_NAME}-windows main.go
+	GOARCH=amd64 GOOS=windows go build -o bin/${BINARY_NAME}-windows.exe main.go
 
 clean:
 	go clean
 	rm bin/${BINARY_NAME}-darwin
 	rm bin/${BINARY_NAME}-linux
-	rm bin/${BINARY_NAME}-windows
+	rm bin/${BINARY_NAME}-windows.exe
 
 all: hello build

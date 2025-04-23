@@ -37,8 +37,10 @@ func init() {
 		panic(err)
 	}
 
-	fmt.Println("Viper Config: ", config)
-	fmt.Println("Configuring APV with username: " + config.Username + " and password: " + config.Password)
+	if config.Debug {
+		fmt.Println("Viper Config: ", config)
+		fmt.Println("Configuring APV with username: " + config.Username + " and password: " + config.Password)
+	}
 }
 
 /**
